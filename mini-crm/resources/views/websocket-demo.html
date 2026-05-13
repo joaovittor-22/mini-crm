@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini CRM - Monitor de Score em Tempo Real</title>
+    <style>
+        /*
+         * Estilos simples para o painel de monitoramento.
+         * Este arquivo é apenas um exemplo para demonstrar a integração
+         * com Laravel Reverb via WebSockets. Não é uma UI de produção.
+         */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #38bdf8;
+            margin-bottom: 0.5rem;
+        }
+
+        p.subtitle {
+            color: #94a3b8;
+            font-size: 0.875rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .card h2 { font-size: 1rem; color: #94a3b8; margin-bottom: 1rem; }
+
+        .form-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 0.25rem; }
+        .form-group label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        input[type="number"] {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 0.375rem;
+            color: #e2e8f0;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            width: 120px;
+        }
+
+        button {
+            background: #0284c7;
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            padding: 0.5rem 1.25rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.15s;
+        }
+        button:hover { background: #0369a1; }
+        button.danger { background: #dc2626; }
+        button.danger:hover { background: #b91c1c; }
+
+        /* Status de conexão */
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8125rem;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            width: fit-content;
+            margin-bottom: 1.5rem;
+        }
+        .connection-status.connected { background: #052e16; color: #4ade80; border: 1px solid #166534; }
+        .connection-status.disconnected { background: #3b0764; color: #c4b5fd; border: 1px solid #6d28d9; }
+        .connection-status.error { background: #450a0a; color: #fca5a5; border: 1px solid #991b1b; }
+
+        .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Painel de contato monitorado */
+        .contact-panel {
+            display: none;
+        }
+        .contact-panel.visible { display: block; }
+
+        .contact-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-item { display: flex; flex-direction: column; gap: 0.25rem; }
+        .info-item .label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+        .info-item .value { font-size: 1rem; font-weight: 600; }
+
+        /* Score animado */
+        .score-display {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #38bdf8;
+            line-height: 1;
+            transition: transform 0.3s, color 0.3s;
+        }
+        .score-display.updated {
+            transform: scale(1.2);
+            color: #4ade80;
+        }
+
+        /* Badges de status */
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .badge.pending    { background: #1c1917; color: #a8a29e; border: 1px solid #44403c; }
+        .badge.processing { background: #1c1c08; color: #fde047; border: 1px solid #854d0e; animation: pulse 1s infinite; }
+        .badge.active     { background: #052e16; color: #4ade80; border: 1px solid #166534; }
+        .badge.failed     { background: #450a0a; color: #fca5a5; border: 1px solid #991b1b; }
+
+        /* Log de eventos */
+        .event-log {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+        }
+
+        .log-entry {
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #1e293b;
+            display: flex;
+            gap: 0.75rem;
+        }
+        .log-entry:last-child { border-bottom: none; }
+        .log-time { color: #475569; white-space: nowrap; }
+        .log-msg.info    { color: #7dd3fc; }
+        .log-msg.success { color: #4ade80; }
+        .log-msg.error   { color: #fca5a5; }
+        .log-msg.event   { color: #c4b5fd; }
+    </style>
+</head>
+<body>
+
+    <h1>Mini CRM — Monitor de Score em Tempo Real</h1>
+    <p class="subtitle">
+        Demonstração da integração com Laravel Reverb via WebSockets.
+        Insira o ID de um contato e clique em "Monitorar" para escutar atualizações ao vivo.
+    </p>
+
+    <!-- Status da conexão WebSocket -->
+    <div id="connectionStatus" class="connection-status disconnected">
+        <div class="dot"></div>
+        <span id="connectionText">Desconectado</span>
+    </div>
+
+    <!-- Formulário de controle -->
+    <div class="card">
+        <h2>Configuracao</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="contactId">ID do Contato</label>
+                <input type="number" id="contactId" placeholder="Ex: 1" min="1">
+            </div>
+            <button id="btnMonitor" onclick="startMonitoring()">Monitorar</button>
+            <button class="danger" onclick="stopMonitoring()" id="btnStop" style="display:none">Parar</button>
+        </div>
+    </div>
+
+    <!-- Painel do contato monitorado -->
+    <div class="card contact-panel" id="contactPanel">
+        <h2>Contato Monitorado — Canal: <span id="channelName" style="color:#38bdf8"></span></h2>
+        <div class="contact-info">
+            <div class="info-item">
+                <span class="label">Score Atual</span>
+                <span class="score-display" id="contactScore">0</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Status</span>
+                <span id="contactStatus" class="badge pending">Pendente</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Nome</span>
+                <span class="value" id="contactName">—</span>
+            </div>
+            <div class="info-item">
+                <span class="label">E-mail</span>
+                <span class="value" id="contactEmail">—</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Processado em</span>
+                <span class="value" id="contactProcessedAt">—</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log de eventos recebidos -->
+    <div class="card">
+        <h2>Log de Eventos WebSocket</h2>
+        <div class="event-log" id="eventLog">
+            <div class="log-entry">
+                <span class="log-time">--:--:--</span>
+                <span class="log-msg info">Aguardando conexao...</span>
+            </div>
+        </div>
+    </div>
+
+    <!--
+        Pusher JS é a biblioteca cliente do Reverb.
+        O Laravel Reverb é compatível com o protocolo Pusher, por isso usamos o client Pusher.
+        Em produção, use a versão do npm: npm install pusher-js
+    -->
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+
+    <script>
+        /*
+         * Configurações do servidor Reverb.
+         * Estes valores devem corresponder às variáveis de ambiente do seu .env:
+         *   REVERB_APP_KEY, REVERB_HOST, REVERB_PORT, REVERB_SCHEME
+         */
+        const REVERB_CONFIG = {
+            appKey: 'mini-crm-key',   // REVERB_APP_KEY
+            wsHost: 'localhost',       // REVERB_HOST
+            wsPort: 8080,              // REVERB_PORT
+            forceTLS: false,           // true se REVERB_SCHEME=https
+            enabledTransports: ['ws', 'wss'],
+            cluster: 'mt1',            // obrigatório mas ignorado pelo Reverb
+        };
+
+        let pusher      = null;
+        let channel     = null;
+        let monitoredId = null;
+
+        /*
+         * Inicia a conexão WebSocket e começa a escutar o canal do contato.
+         */
+        function startMonitoring() {
+            const id = parseInt(document.getElementById('contactId').value);
+
+            if (!id || id < 1) {
+                addLog('Informe um ID de contato válido.', 'error');
+                return;
+            }
+
+            // Encerra monitoramento anterior se existir
+            stopMonitoring();
+
+            monitoredId = id;
+            updateUI({ status: 'pending', score: 0, name: '...', email: '...', processed_at: null });
+
+            // Exibe o painel do contato
+            const panel = document.getElementById('contactPanel');
+            panel.classList.add('visible');
+            document.getElementById('channelName').textContent = `contacts.${id}`;
+            document.getElementById('btnStop').style.display = 'inline-block';
+
+            addLog(`Conectando ao canal contacts.${id}...`, 'info');
+
+            // Inicializa o cliente Pusher apontando para o Reverb
+            pusher = new Pusher(REVERB_CONFIG.appKey, {
+                wsHost:             REVERB_CONFIG.wsHost,
+                wsPort:             REVERB_CONFIG.wsPort,
+                forceTLS:           REVERB_CONFIG.forceTLS,
+                enabledTransports:  REVERB_CONFIG.enabledTransports,
+                cluster:            REVERB_CONFIG.cluster,
+            });
+
+            // Monitora o estado da conexão
+            pusher.connection.bind('connected', () => {
+                setConnectionStatus('connected', 'Conectado ao Reverb');
+                addLog('Conexao WebSocket estabelecida com sucesso.', 'success');
+            });
+
+            pusher.connection.bind('disconnected', () => {
+                setConnectionStatus('disconnected', 'Desconectado');
+                addLog('Conexao WebSocket encerrada.', 'info');
+            });
+
+            pusher.connection.bind('error', (err) => {
+                setConnectionStatus('error', 'Erro na conexao');
+                addLog(`Erro na conexao: ${JSON.stringify(err)}`, 'error');
+            });
+
+            /*
+             * Inscreve no canal público do contato.
+             * Canal: contacts.{id}
+             *
+             * Para canais privados, usaríamos pusher.subscribe('private-contacts.' + id)
+             * e precisaríamos de um endpoint de autenticação no servidor.
+             */
+            channel = pusher.subscribe(`contacts.${id}`);
+
+            /*
+             * Escuta o evento ContactScoreUpdated.
+             * O prefixo do ponto (.) é necessário quando o nome do evento é personalizado
+             * (não começa com App\\Events). Isso porque o Reverb/Pusher adiciona o namespace
+             * automaticamente, e o ponto no início remove esse prefixo.
+             *
+             * Nome configurado em ContactScoreUpdatedEvent::broadcastAs(): 'ContactScoreUpdated'
+             */
+            channel.bind('.ContactScoreUpdated', function(data) {
+                addLog(`Evento recebido: ContactScoreUpdated para contato #${id}`, 'event');
+                addLog(`Score: ${data.contact.score} | Status: ${data.contact.status}`, 'success');
+
+                // Atualiza o painel com os novos dados
+                updateUI(data.contact);
+
+                // Animação de destaque no score
+                const scoreEl = document.getElementById('contactScore');
+                scoreEl.classList.add('updated');
+                setTimeout(() => scoreEl.classList.remove('updated'), 600);
+            });
+
+            channel.bind('pusher:subscription_succeeded', () => {
+                addLog(`Inscrito no canal contacts.${id} com sucesso.`, 'success');
+            });
+
+            channel.bind('pusher:subscription_error', (err) => {
+                addLog(`Erro ao se inscrever no canal: ${JSON.stringify(err)}`, 'error');
+            });
+        }
+
+        /*
+         * Encerra a conexão WebSocket e limpa o estado.
+         */
+        function stopMonitoring() {
+            if (channel && monitoredId) {
+                pusher.unsubscribe(`contacts.${monitoredId}`);
+                addLog(`Cancelada inscricao no canal contacts.${monitoredId}.`, 'info');
+            }
+            if (pusher) {
+                pusher.disconnect();
+                pusher = null;
+            }
+            channel     = null;
+            monitoredId = null;
+
+            setConnectionStatus('disconnected', 'Desconectado');
+            document.getElementById('btnStop').style.display = 'none';
+        }
+
+        /*
+         * Atualiza o painel visual com os dados mais recentes do contato.
+         */
+        function updateUI(contact) {
+            document.getElementById('contactScore').textContent       = contact.score ?? 0;
+            document.getElementById('contactName').textContent        = contact.name ?? '—';
+            document.getElementById('contactEmail').textContent       = contact.email ?? '—';
+            document.getElementById('contactProcessedAt').textContent = contact.processed_at ?? '—';
+
+            const statusEl  = document.getElementById('contactStatus');
+            const statusMap = {
+                pending:    { label: 'Pendente',     cls: 'pending'    },
+                processing: { label: 'Processando',  cls: 'processing' },
+                active:     { label: 'Ativo',        cls: 'active'     },
+                failed:     { label: 'Falhou',       cls: 'failed'     },
+            };
+
+            const info = statusMap[contact.status] || { label: contact.status, cls: 'pending' };
+            statusEl.textContent = info.label;
+            statusEl.className   = `badge ${info.cls}`;
+        }
+
+        /*
+         * Atualiza o indicador visual de estado da conexão.
+         */
+        function setConnectionStatus(state, text) {
+            const el   = document.getElementById('connectionStatus');
+            const span = document.getElementById('connectionText');
+            el.className = `connection-status ${state}`;
+            span.textContent = text;
+        }
+
+        /*
+         * Adiciona uma entrada ao log de eventos na tela.
+         */
+        function addLog(message, type = 'info') {
+            const log   = document.getElementById('eventLog');
+            const now   = new Date().toLocaleTimeString('pt-BR');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <span class="log-time">${now}</span>
+                <span class="log-msg ${type}">${message}</span>
+            `;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+    </script>
+
+</body>
+</html>

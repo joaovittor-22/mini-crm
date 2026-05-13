@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         stopOnFailure="false"
+>
+    <!--
+        Configuração do PHPUnit para o Mini CRM.
+        Suítes separadas para Testes Unitários (sem banco) e de Feature (com banco de teste).
+    -->
+
+    <testsuites>
+        <!-- Testes de Unidade: puro PHP, sem banco, sem framework completo -->
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+
+        <!-- Testes de Feature: integração com banco, HTTP, filas -->
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+
+    <!-- Configuração de cobertura de código -->
+    <source>
+        <include>
+            <directory>src</directory>
+        </include>
+    </source>
+
+    <!-- Variáveis de ambiente sobrescritas apenas para o ambiente de teste -->
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_KEY" value="base64:2fl+Ktvkfl+Ktvkfl+Ktvkfl+Ktvkfl+Ktvkfl+Ktvk="/>
+        <env name="APP_DEBUG" value="true"/>
+
+        <!-- Banco de dados de teste dedicado -->
+        <env name="DB_CONNECTION" value="mysql"/>
+        <env name="DB_HOST" value="mysql_test"/>
+        <env name="DB_PORT" value="3306"/>
+        <env name="DB_DATABASE" value="mini_crm_test"/>
+        <env name="DB_USERNAME" value="mini_crm"/>
+        <env name="DB_PASSWORD" value="secret"/>
+
+        <!-- Fila síncrona nos testes: Jobs são executados imediatamente, sem worker -->
+        <env name="QUEUE_CONNECTION" value="sync"/>
+
+        <!-- Cache em array: sem Redis nos testes unitários -->
+        <env name="CACHE_STORE" value="array"/>
+
+        <!-- Session em array: sem estado persistente nos testes -->
+        <env name="SESSION_DRIVER" value="array"/>
+
+        <!-- Broadcast em null: sem WebSocket nos testes -->
+        <env name="BROADCAST_CONNECTION" value="null"/>
+
+        <!-- Log em null: sem gravação de arquivos nos testes -->
+        <env name="LOG_CHANNEL" value="null"/>
+    </php>
+</phpunit>

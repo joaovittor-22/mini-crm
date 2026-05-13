@@ -1,0 +1,39 @@
+# Dependências PHP
+/vendor/
+/node_modules/
+
+# Arquivos de ambiente (contêm senhas e secrets)
+.env
+.env.backup
+.env.*.local
+
+# Cache e compilados do Laravel
+/bootstrap/cache/*.php
+!/bootstrap/cache/.gitkeep
+
+# Logs (gerados em runtime)
+/storage/logs/*.log
+!/storage/logs/.gitkeep
+
+# Uploads e arquivos gerados
+/storage/app/public/
+/storage/framework/cache/data/
+/storage/framework/sessions/
+/storage/framework/testing/
+/storage/framework/views/
+
+# Cobertura de código
+/coverage/
+/.phpunit.cache/
+/.pest/
+/.phpunit.result.cache
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Docker volumes (não versionamos dados do banco)
+mysql_data/
