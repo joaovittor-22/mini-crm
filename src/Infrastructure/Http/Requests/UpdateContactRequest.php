@@ -28,7 +28,7 @@ final class UpdateContactRequest extends FormRequest
             'name'  => ['required', 'string', 'max:255'],
 
             // Ignora o próprio e-mail do contato na verificação de unicidade
-            'email' => ['required', 'email:rfc,dns', 'max:255', "unique:contacts,email,{$contactId}"],
+            'email' => ['required', 'email:rfc', 'max:255', "unique:contacts,email,{$contactId}"],
 
             'phone' => ['required', 'string', 'min:10', 'max:20'],
         ];

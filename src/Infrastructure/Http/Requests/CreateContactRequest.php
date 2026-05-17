@@ -33,7 +33,7 @@ final class CreateContactRequest extends FormRequest
             'name'  => ['required', 'string', 'max:255'],
 
             // O e-mail deve ser único na tabela contacts (excluindo soft-deleted)
-            'email' => ['required', 'email:rfc,dns', 'max:255', 'unique:contacts,email'],
+            'email' => ['required', 'email:rfc', 'max:255', 'unique:contacts,email'],
 
             // O telefone deve ter entre 10 e 15 caracteres (dígitos + formatação)
             'phone' => ['required', 'string', 'min:10', 'max:20'],
