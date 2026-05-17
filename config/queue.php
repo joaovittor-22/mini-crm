@@ -8,15 +8,15 @@ return [
     |--------------------------------------------------------------------------
     |
     | Configurado via .env como QUEUE_CONNECTION.
-    | Em produção: 'redis' | Em testes: 'sync'
+    | Padrão local: 'sync'
     |
     */
 
-    'default' => env('QUEUE_CONNECTION', 'redis'),
+    'default' => env('QUEUE_CONNECTION', 'sync'),
 
     'connections' => [
 
-        // Fila síncrona: executa o Job imediatamente na mesma requisição (uso em testes)
+        // Fila síncrona: executa o Job imediatamente na mesma requisição.
         'sync' => [
             'driver' => 'sync',
         ],
@@ -31,7 +31,7 @@ return [
             'after_commit' => false,
         ],
 
-        // Fila Redis: usada em produção e desenvolvimento com Docker
+        // Fila Redis: disponível para ambientes que optem por esse serviço.
         'redis' => [
             'driver'       => 'redis',
             'connection'   => env('REDIS_QUEUE_CONNECTION', 'default'),
@@ -55,7 +55,7 @@ return [
 
     'failed' => [
         'driver'   => env('QUEUE_FAILED_DRIVER', 'database-uuids'),
-        'database' => env('DB_CONNECTION', 'mysql'),
+        'database' => env('DB_CONNECTION', 'sqlite'),
         'table'    => 'failed_jobs',
     ],
 
