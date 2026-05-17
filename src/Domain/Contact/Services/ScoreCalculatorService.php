@@ -22,7 +22,7 @@ use Domain\Contact\ValueObjects\Score;
  *
  * Isso segue o OCP (Open/Closed Principle): aberto para extensão, fechado para modificação.
  */
-final class ScoreCalculatorService
+class ScoreCalculatorService
 {
     /**
      * @param ScoreRuleInterface[] $rules Lista de regras a serem aplicadas.
