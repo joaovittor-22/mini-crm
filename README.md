@@ -8,10 +8,42 @@ API REST para gerenciamento de contatos com cálculo de score, construída com L
 - Composer
 - Extensões PHP comuns do Laravel, incluindo `pdo_sqlite`, `mbstring`, `xml`, `curl` e `zip`
 
-No Fedora, uma instalação básica fica assim:
+Instalação básica por sistema operacional:
+
+### Fedora
 
 ```bash
 sudo dnf install php php-cli php-pdo php-mbstring php-xml php-curl php-zip php-bcmath composer
+```
+
+### Ubuntu
+
+```bash
+sudo apt update
+sudo apt install php php-cli php-sqlite3 php-mbstring php-xml php-curl php-zip php-bcmath composer
+```
+
+### macOS
+
+Com Homebrew:
+
+```bash
+brew install php composer
+```
+
+### Windows
+
+Instale o XAMPP e use o PHP que vem com ele:
+
+- Baixe e instale o XAMPP.
+- Adicione `C:\xampp\php` ao `Path` do Windows.
+- Instale o Composer para Windows e selecione o PHP em `C:\xampp\php\php.exe` durante a instalação.
+
+Depois confirme no PowerShell:
+
+```powershell
+php -v
+composer --version
 ```
 
 ## Instalação
