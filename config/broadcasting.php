@@ -8,11 +8,11 @@ return [
     |--------------------------------------------------------------------------
     |
     | Configurado via .env como BROADCAST_CONNECTION.
-    | Em produção: 'reverb' | Em testes: 'null'
+    | Padrão local: 'log'
     |
     */
 
-    'default' => env('BROADCAST_CONNECTION', 'null'),
+    'default' => env('BROADCAST_CONNECTION', 'log'),
 
     'connections' => [
 
@@ -45,6 +45,11 @@ return [
         // Driver nulo: descarta todos os broadcasts (usado em testes)
         'null' => [
             'driver' => 'null',
+        ],
+
+        // Log: registra broadcasts no log local da aplicação.
+        'log' => [
+            'driver' => 'log',
         ],
 
         // Pusher: mantido por compatibilidade com outros projetos
